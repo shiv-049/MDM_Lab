@@ -1,0 +1,40 @@
+#include <xc.h>
+#define _XTAL_FREQ 8000000
+#pragma config FOSC = HS
+#pragma config WDT = OFF
+#pragma config LVP = OFF
+#pragma config PBADEN = OFF
+#pragma config MCLRE = ON
+#pragma config XINST = OFF
+void delay_1ms(void)
+{
+ T0CON = 0x08;
+ TMR0H = 0xF8;
+ TMR0L = 0x30;
+ INTCONbits.TMR0IF = 0;
+ T0CONbits.TMR0ON = 1;
+while (INTCONbits.TMR0IF == 0);
+ T0CONbits.TMR0ON = 0;
+ INTCONbits.TMR0IF = 0;
+}
+void delay_1s(void)
+{
+ unsigned int i;
+for (i = 0; i < 1000; i++)
+ {
+ delay_1ms();
+ }
+}
+void main(void)
+{
+ ADCON1 = 0x0F;
+ TRISCbits.TRISC1 = 0;
+ LATCbits.LATC1 = 0;
+while (1)
+ {
+ LATCbits.LATC1 = 1;
+ delay_1s();
+ LATCbits.LATC1 = 0;
+ delay_1s();
+ }
+}
