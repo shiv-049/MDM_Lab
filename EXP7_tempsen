@@ -1,0 +1,111 @@
+#include <xc.h>
+#include <stdio.h>
+
+#define _XTAL_FREQ 8000000
+
+#pragma config FOSC = HS
+#pragma config WDT = OFF
+#pragma config LVP = OFF
+#pragma config PBADEN = OFF
+#pragma config MCLRE = ON
+#pragma config XINST = OFF
+
+#define RS LATEbits.LATE0
+#define EN LATEbits.LATE1
+
+char text[17];
+
+void Delay_500ms(void)
+{
+    unsigned int i;
+
+    for (i = 0; i < 500; i++)
+    {
+        __delay_ms(1);
+    }
+}
+
+void LCD_Command(unsigned char cmd)
+{
+    LATD = cmd;
+    RS = 0;
+    EN = 1;
+    __delay_ms(2);
+    EN = 0;
+    __delay_ms(2);
+}
+
+void LCD_Char(unsigned char data)
+{
+    LATD = data;
+    RS = 1;
+    EN = 1;
+    __delay_ms(2);
+    EN = 0;
+    __delay_ms(2);
+}
+
+void LCD_String(const char *s)
+{
+    while (*s)
+    {
+        LCD_Char(*s++);
+    }
+}
+
+void LCD_Init(void)
+{
+    TRISD = 0x00;
+    TRISEbits.TRISE0 = 0;
+    TRISEbits.TRISE1 = 0;
+
+    LATD = 0x00;
+    LATE = 0x00;
+
+    __delay_ms(20);
+
+    LCD_Command(0x38);
+    LCD_Command(0x0C);
+    LCD_Command(0x06);
+    LCD_Command(0x01);
+
+    __delay_ms(5);
+}
+
+void main(void)
+{
+    unsigned int adc;
+    unsigned int temperature;
+
+    ADCON1 = 0x0E;
+    ADCON2 = 0xAE;
+    ADCON0 = 0x01;
+
+    TRISAbits.TRISA0 = 1;
+
+    LCD_Init();
+
+    while (1)
+    {
+        ADCON0 = 0x01;
+
+        __delay_us(25);
+
+        ADCON0bits.GO = 1;
+
+        while (ADCON0bits.GO);
+
+        adc = ((unsigned int)ADRESH << 8) | ADRESL;
+
+        temperature = (adc * 500UL) / 1023;
+
+        LCD_Command(0x80);
+        LCD_String("Temperature:");
+
+        LCD_Command(0xC0);
+        sprintf(text, "%u C          ", temperature);
+        LCD_String(text);
+
+        Delay_500ms();
+    }
+}
